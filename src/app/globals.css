@@ -1,0 +1,314 @@
+@import "tailwindcss";
+
+/* Class-based dark mode driver (dark is the default; `.light` opts out) */
+@custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
+
+/* ------------------------------------------------------------------ */
+/*  DESIGN TOKENS                                                       */
+/* ------------------------------------------------------------------ */
+/*  Dark is the primary theme -> defined on :root. `.light` overrides. */
+
+:root {
+  /* Surfaces */
+  --background: #07080d;
+  --background-2: #0b0d16;
+  --surface: 255 255 255; /* rgb triplet for alpha compositing */
+  --card: rgba(255, 255, 255, 0.035);
+  --card-solid: #10121c;
+  --card-hover: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --ring: rgba(124, 92, 255, 0.55);
+
+  /* Text */
+  --foreground: #eef0f6;
+  --muted: #9aa0b4;
+  --muted-2: #6a7086;
+
+  /* Brand */
+  --brand: #7c5cff;
+  --brand-2: #22d3ee;
+  --brand-soft: rgba(124, 92, 255, 0.14);
+
+  /* Status */
+  --profit: #34d399;
+  --profit-soft: rgba(52, 211, 153, 0.14);
+  --loss: #fb5b74;
+  --loss-soft: rgba(251, 91, 116, 0.14);
+  --info: #3b9dff;
+  --info-soft: rgba(59, 157, 255, 0.14);
+  --warn: #f5b23a;
+  --warn-soft: rgba(245, 178, 58, 0.14);
+
+  --shadow-color: 220 40% 2%;
+}
+
+:root.light {
+  --background: #f4f5fa;
+  --background-2: #eceef6;
+  --surface: 20 22 40;
+  --card: rgba(255, 255, 255, 0.75);
+  --card-solid: #ffffff;
+  --card-hover: rgba(255, 255, 255, 0.95);
+  --border: rgba(17, 20, 40, 0.08);
+  --border-strong: rgba(17, 20, 40, 0.14);
+  --ring: rgba(124, 92, 255, 0.4);
+
+  --foreground: #10131f;
+  --muted: #565d72;
+  --muted-2: #838aa0;
+
+  --brand: #6b46ff;
+  --brand-2: #0891b2;
+  --brand-soft: rgba(107, 70, 255, 0.1);
+
+  --profit: #10a56f;
+  --profit-soft: rgba(16, 165, 111, 0.12);
+  --loss: #e23b58;
+  --loss-soft: rgba(226, 59, 88, 0.1);
+  --info: #2f7fe0;
+  --info-soft: rgba(47, 127, 224, 0.1);
+  --warn: #d9930f;
+  --warn-soft: rgba(217, 147, 15, 0.12);
+
+  --shadow-color: 230 30% 55%;
+}
+
+/* ------------------------------------------------------------------ */
+/*  TAILWIND THEME MAPPING                                              */
+/* ------------------------------------------------------------------ */
+@theme inline {
+  --color-background: var(--background);
+  --color-background-2: var(--background-2);
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-soft: var(--brand-soft);
+  --color-profit: var(--profit);
+  --color-profit-soft: var(--profit-soft);
+  --color-loss: var(--loss);
+  --color-loss-soft: var(--loss-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
+  --color-ring: var(--ring);
+}
+
+/* ------------------------------------------------------------------ */
+/*  BASE                                                               */
+/* ------------------------------------------------------------------ */
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Ambient background glow */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 92, 255, 0.16), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 0%, rgba(34, 211, 238, 0.1), transparent 55%),
+    radial-gradient(50rem 50rem at 50% 120%, rgba(124, 92, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--background), var(--background-2));
+}
+:root.light .app-bg {
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 92, 255, 0.12), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 0%, rgba(8, 145, 178, 0.08), transparent 55%),
+    linear-gradient(180deg, var(--background), var(--background-2));
+}
+
+/* ------------------------------------------------------------------ */
+/*  UTILITIES                                                          */
+/* ------------------------------------------------------------------ */
+@utility glass {
+  background-color: var(--card);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border);
+}
+
+@utility glass-strong {
+  background-color: var(--card-hover);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--border-strong);
+}
+
+@utility card-shadow {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 20px 40px -24px hsl(var(--shadow-color) / 0.7);
+}
+
+@utility text-gradient {
+  background: linear-gradient(120deg, var(--foreground), var(--muted));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility brand-gradient {
+  background: linear-gradient(120deg, var(--brand), var(--brand-2));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-2);
+}
+
+/* Number tabular alignment for financial figures */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Animations */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 var(--brand-soft);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Range slider */
+input[type="range"].range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 3px solid var(--card-solid);
+  box-shadow: 0 0 0 1px var(--border-strong), 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+input[type="range"].range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"].range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 3px solid var(--card-solid);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Clean print output (reports) — hide app chrome */
+@media print {
+  aside,
+  header,
+  .app-bg,
+  .print-hide {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
