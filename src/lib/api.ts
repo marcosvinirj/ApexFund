@@ -50,6 +50,17 @@ export function apiGet<T>(url: string): Promise<T> {
   return fetch(url, { cache: "no-store" }).then((r) => json<T>(r));
 }
 
+/**
+ * Global revalidation bus: every mounted useApi hook registers its refresh
+ * here, so a single mutation (add/edit/delete anywhere) re-fetches all live
+ * data — the header Capital, dashboard, etc. update on their own, no reload.
+ */
+const revalidators = new Set<() => void>();
+
+export function revalidateAll() {
+  for (const fn of revalidators) fn();
+}
+
 export function apiSend<T>(
   url: string,
   method: "POST" | "PATCH" | "DELETE",
@@ -59,7 +70,13 @@ export function apiSend<T>(
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-  }).then((r) => json<T>(r));
+  })
+    .then((r) => json<T>(r))
+    .then((data) => {
+      // A mutation just succeeded — refresh every mounted query.
+      revalidateAll();
+      return data;
+    });
 }
 
 /** Minimal data hook: fetch on mount, expose refresh + optimistic setters. */
@@ -82,6 +99,11 @@ export function useApi<T>(url: string) {
 
   useEffect(() => {
     void refresh();
+    // Join the revalidation bus so mutations elsewhere refresh this data too.
+    revalidators.add(refresh);
+    return () => {
+      revalidators.delete(refresh);
+    };
   }, [refresh]);
 
   return { data, loading, error, refresh, setData };
