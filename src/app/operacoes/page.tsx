@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Search, Trash2, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, X, ArrowUp, ArrowDown } from "lucide-react";
 import {
   apiSend,
   useApi,
@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, Label, Select, Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { PageTransition, PageHeader, Skeleton } from "@/components/ui/page";
 import {
   formatCurrency,
@@ -36,6 +37,7 @@ export default function OperacoesPage() {
   const { data: ops, refresh } = useApi<Operation[]>("/api/operations");
   const { data: plan } = useApi<GrowthPlan>("/api/plan");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Operation | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<OperationResult | "all">("all");
 
@@ -202,16 +204,25 @@ export default function OperacoesPage() {
                     {formatCurrency(op.balanceAfter, true)}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={async () => {
-                        await apiSend(`/api/operations/${op.id}`, "DELETE");
-                        refresh();
-                      }}
-                      className="text-muted-2 opacity-0 transition-opacity hover:text-[var(--loss)] group-hover:opacity-100"
-                      aria-label="Eliminar"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditing(op)}
+                        className="text-muted-2 opacity-0 transition-opacity hover:text-[var(--brand)] group-hover:opacity-100"
+                        aria-label="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await apiSend(`/api/operations/${op.id}`, "DELETE");
+                          refresh();
+                        }}
+                        className="text-muted-2 opacity-0 transition-opacity hover:text-[var(--loss)] group-hover:opacity-100"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -226,6 +237,16 @@ export default function OperacoesPage() {
           </table>
         </div>
       </Card>
+
+      <OperationEditModal
+        plan={plan}
+        op={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          refresh();
+          setEditing(null);
+        }}
+      />
     </PageTransition>
   );
 }
@@ -356,5 +377,170 @@ function OperationForm({
         </Button>
       </div>
     </Card>
+  );
+}
+
+function OperationEditModal({
+  plan,
+  op,
+  onClose,
+  onSaved,
+}: {
+  plan: GrowthPlan;
+  op: Operation | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  return (
+    <Modal open={!!op} onClose={onClose} title="Editar operação">
+      {op && (
+        <OperationEditForm
+          key={op.id}
+          plan={plan}
+          op={op}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      )}
+    </Modal>
+  );
+}
+
+function OperationEditForm({
+  plan,
+  op,
+  onClose,
+  onSaved,
+}: {
+  plan: GrowthPlan;
+  op: Operation;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  // Capital right before this trade — stable, drives the €↔% conversion.
+  const balanceBefore = op.balanceAfter - op.pnl;
+  const [pair, setPair] = useState(op.pair);
+  const [direction, setDirection] = useState<"long" | "short">(op.direction);
+  const [result, setResult] = useState<OperationResult>(op.result);
+  const [riskAmount, setRiskAmount] = useState(
+    Math.round((op.riskPercent / 100) * balanceBefore * 100) / 100,
+  );
+  const [rMultiple, setRMultiple] = useState(op.rMultiple);
+  const [date, setDate] = useState(op.date);
+  const [busy, setBusy] = useState(false);
+
+  function onResultChange(r: OperationResult) {
+    setResult(r);
+    setRMultiple(r === "win" ? plan.riskReward : r === "loss" ? -1 : 0);
+  }
+
+  const riskPercent =
+    balanceBefore > 0 ? (riskAmount / balanceBefore) * 100 : op.riskPercent;
+  const potentialReturn = riskAmount * rMultiple;
+
+  async function submit() {
+    setBusy(true);
+    try {
+      await apiSend(`/api/operations/${op.id}`, "PATCH", {
+        date,
+        pair,
+        direction,
+        result,
+        riskPercent,
+        rMultiple,
+        notes: op.notes,
+      });
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label>Data</Label>
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Par</Label>
+          <Select value={pair} onChange={(e) => setPair(e.target.value)}>
+            {INSTRUMENT_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </optgroup>
+            ))}
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Direção</Label>
+          <Select
+            value={direction}
+            onChange={(e) => setDirection(e.target.value as "long" | "short")}
+          >
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Resultado</Label>
+          <Select
+            value={result}
+            onChange={(e) => onResultChange(e.target.value as OperationResult)}
+          >
+            <option value="win">Ganho</option>
+            <option value="loss">Perda</option>
+            <option value="breakeven">Break-even</option>
+          </Select>
+        </div>
+        <Field
+          label="Risco (€)"
+          prefix="€"
+          type="number"
+          step="1"
+          min="0"
+          value={riskAmount}
+          onChange={(e) => setRiskAmount(Number(e.target.value))}
+        />
+        <Field
+          label="R obtido"
+          type="number"
+          step="0.1"
+          value={rMultiple}
+          onChange={(e) => setRMultiple(Number(e.target.value))}
+        />
+      </div>
+
+      <p className="rounded-xl bg-[var(--card-hover)] p-3 text-xs leading-relaxed text-muted">
+        Arriscas{" "}
+        <span className="font-semibold text-foreground">
+          {formatCurrency(riskAmount, true)}
+        </span>{" "}
+        ({riskPercent.toFixed(2)}% do capital antes desta operação) para{" "}
+        <span
+          className="font-semibold"
+          style={{ color: potentialReturn >= 0 ? "var(--profit)" : "var(--loss)" }}
+        >
+          {formatSigned(potentialReturn, true)}
+        </span>
+        . Os saldos seguintes são recalculados automaticamente.
+      </p>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button onClick={submit} disabled={busy}>
+          {busy ? "A guardar…" : "Guardar alterações"}
+        </Button>
+      </div>
+    </div>
   );
 }

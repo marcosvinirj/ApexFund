@@ -580,6 +580,75 @@ export async function deleteOperation(userId: string, id: string): Promise<void>
   });
 }
 
+export interface UpdateOperationInput {
+  date: string;
+  pair: string;
+  direction: "long" | "short";
+  result: OperationResult;
+  riskPercent: number;
+  rMultiple: number;
+  notes?: string;
+}
+
+/**
+ * Edit an existing operation. The editable fields are written first, then the
+ * whole balance chain is re-derived so pnl / balanceAfter stay consistent
+ * (including when a date change reorders the operation).
+ */
+export async function updateOperation(
+  userId: string,
+  id: string,
+  input: UpdateOperationInput,
+): Promise<Operation | null> {
+  await ready();
+  const res = await client().execute({
+    sql: `UPDATE operations SET
+      date = ?, pair = ?, direction = ?, result = ?, risk_percent = ?, r_multiple = ?, notes = ?
+      WHERE id = ? AND user_id = ?`,
+    args: [
+      input.date,
+      input.pair,
+      input.direction,
+      input.result,
+      input.riskPercent,
+      input.rMultiple,
+      input.notes ?? null,
+      id,
+      userId,
+    ],
+  });
+  if (!res.rowsAffected) return null;
+  await recomputeBalances(userId);
+  const ops = await listOperations(userId);
+  return ops.find((o) => o.id === id) ?? null;
+}
+
+/**
+ * Recompute pnl + balanceAfter for every operation in chronological order,
+ * compounding from the plan's initial capital. Only rows that actually change
+ * are written back.
+ */
+async function recomputeBalances(userId: string): Promise<void> {
+  const [ops, plan] = await Promise.all([
+    listOperations(userId),
+    getPlan(userId),
+  ]);
+  const updates: { sql: string; args: (string | number)[] }[] = [];
+  let balance = plan.initialCapital;
+  for (const op of ops) {
+    const pnl = round2((op.rMultiple * op.riskPercent * balance) / 100)!;
+    const balanceAfter = round2(balance + pnl)!;
+    if (pnl !== op.pnl || balanceAfter !== op.balanceAfter) {
+      updates.push({
+        sql: "UPDATE operations SET pnl = ?, balance_after = ? WHERE id = ?",
+        args: [pnl, balanceAfter, op.id],
+      });
+    }
+    balance = balanceAfter;
+  }
+  if (updates.length) await client().batch(updates, "write");
+}
+
 export async function listMilestones(userId: string): Promise<Milestone[]> {
   await ready();
   const res = await client().execute({
