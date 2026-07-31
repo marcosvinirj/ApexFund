@@ -69,6 +69,7 @@ export const INDEX_INSTRUMENTS = [
   "FRA40",
   "ESP35",
   "EU50",
+  "NL25",
   "JPN225",
   "AUS200",
   "HK50",
@@ -76,16 +77,39 @@ export const INDEX_INSTRUMENTS = [
   "SWI20",
 ];
 
-export const OTHER_INSTRUMENTS = ["XAU/USD", "XAG/USD", "BTC/USD", "ETH/USD"];
+export const METAL_INSTRUMENTS = [
+  "XAU/USD",
+  "XAUEUR",
+  "XAG/USD",
+  "ALUMINIUM",
+  "COPPER",
+  "NICKEL",
+  "PLATINUM",
+];
+
+export const ENERGY_INSTRUMENTS = ["BRENT", "XTIUSD", "NAT.GAS"];
+
+export const AGRICULTURE_INSTRUMENTS = [
+  "COCOA",
+  "COFFEE",
+  "CORN",
+  "SUGAR.L",
+  "WHEAT",
+];
+
+export const CRYPTO_INSTRUMENTS = ["BTC/USD", "ETH/USD"];
 
 export interface InstrumentGroup {
   label: string;
   options: string[];
 }
 
-/** Grouped for a <select> with <optgroup>: Forex, Índices, Outros. */
+/** Grouped for a <select> with <optgroup>. */
 export const INSTRUMENT_GROUPS: InstrumentGroup[] = [
   { label: "Forex", options: FOREX_PAIRS },
   { label: "Índices", options: INDEX_INSTRUMENTS },
-  { label: "Outros", options: OTHER_INSTRUMENTS },
+  { label: "Metais", options: METAL_INSTRUMENTS },
+  { label: "Energia", options: ENERGY_INSTRUMENTS },
+  { label: "Agrícolas", options: AGRICULTURE_INSTRUMENTS },
+  { label: "Cripto", options: CRYPTO_INSTRUMENTS },
 ];
