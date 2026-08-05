@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export function Label({
@@ -17,10 +20,32 @@ export function Label({
 
 export function Input({
   className,
+  onFocus,
+  onMouseUp,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement>) {
+  // Number fields: select the whole value on focus so typing replaces it —
+  // otherwise a leading "0" is sticky (you can't just clear it and type).
+  const justFocused = useRef(false);
+  const isNumber = props.type === "number";
   return (
     <input
+      onFocus={(e) => {
+        if (isNumber) {
+          e.currentTarget.select();
+          justFocused.current = true;
+        }
+        onFocus?.(e);
+      }}
+      onMouseUp={(e) => {
+        // Keep the click that focused us from collapsing that auto-selection,
+        // but only the first time — later clicks still position the caret.
+        if (isNumber && justFocused.current) {
+          justFocused.current = false;
+          e.preventDefault();
+        }
+        onMouseUp?.(e);
+      }}
       className={cn(
         "h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--card-solid)]/60 px-3 text-sm text-foreground",
         "placeholder:text-muted-2 outline-none transition-colors",
