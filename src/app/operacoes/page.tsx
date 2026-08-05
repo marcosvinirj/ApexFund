@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, Label, Select, Input } from "@/components/ui/input";
+import { InstrumentSelect } from "@/components/ui/instrument-select";
 import { Modal } from "@/components/ui/modal";
 import { PageTransition, PageHeader, Skeleton } from "@/components/ui/page";
 import {
@@ -309,15 +310,7 @@ function OperationForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Par</Label>
-          <Select value={pair} onChange={(e) => setPair(e.target.value)}>
-            {INSTRUMENT_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </optgroup>
-            ))}
-          </Select>
+          <InstrumentSelect value={pair} onChange={setPair} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Direção</Label>
@@ -469,15 +462,7 @@ function OperationEditForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Par</Label>
-          <Select value={pair} onChange={(e) => setPair(e.target.value)}>
-            {INSTRUMENT_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </optgroup>
-            ))}
-          </Select>
+          <InstrumentSelect value={pair} onChange={setPair} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Direção</Label>
